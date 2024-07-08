@@ -1,0 +1,79 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Patient {
+  id           String        @id @default(cuid())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  firstName    String?
+  lastName     String?
+  dob          DateTime?
+  email        String?
+  phoneNumber  String?
+  appointments Appointment[]
+  invoices     Invoice[]
+}
+
+model Dentist {
+  id             String        @id @default(cuid())
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  firstName      String?
+  lastName       String?
+  specialization String?
+  email          String?
+  phoneNumber    String?
+  appointments   Appointment[]
+}
+
+model Appointment {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  date      DateTime?
+  time      String?
+  patient   Patient?  @relation(fields: [patientId], references: [id])
+  patientId String?
+  dentist   Dentist?  @relation(fields: [dentistId], references: [id])
+  dentistId String?
+  invoices  Invoice[]
+}
+
+model Treatment {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String?
+  description String?
+  cost        Float?
+}
+
+model Invoice {
+  id            String       @id @default(cuid())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  amount        Float?
+  dateIssued    DateTime?
+  patient       Patient?     @relation(fields: [patientId], references: [id])
+  patientId     String?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  appointmentId String?
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  firstName String?
+  lastName  String?
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  roles     Json
+}
