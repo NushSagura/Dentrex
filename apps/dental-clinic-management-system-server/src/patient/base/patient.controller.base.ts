@@ -16,7 +16,11 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { PatientService } from "../patient.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { PatientCreateInput } from "./PatientCreateInput";
 import { Patient } from "./Patient";
 import { PatientFindManyArgs } from "./PatientFindManyArgs";
@@ -26,10 +30,24 @@ import { AppointmentFindManyArgs } from "../../appointment/base/AppointmentFindM
 import { Appointment } from "../../appointment/base/Appointment";
 import { AppointmentWhereUniqueInput } from "../../appointment/base/AppointmentWhereUniqueInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class PatientControllerBase {
-  constructor(protected readonly service: PatientService) {}
+  constructor(
+    protected readonly service: PatientService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Patient })
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createPatient(
     @common.Body() data: PatientCreateInput
   ): Promise<Patient> {
@@ -49,9 +67,18 @@ export class PatientControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Patient] })
   @ApiNestedQuery(PatientFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async patients(@common.Req() request: Request): Promise<Patient[]> {
     const args = plainToClass(PatientFindManyArgs, request.query);
     return this.service.patients({
@@ -70,9 +97,18 @@ export class PatientControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Patient })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async patient(
     @common.Param() params: PatientWhereUniqueInput
   ): Promise<Patient | null> {
@@ -98,9 +134,18 @@ export class PatientControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Patient })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updatePatient(
     @common.Param() params: PatientWhereUniqueInput,
     @common.Body() data: PatientUpdateInput
@@ -134,6 +179,14 @@ export class PatientControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Patient })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deletePatient(
     @common.Param() params: PatientWhereUniqueInput
   ): Promise<Patient | null> {
@@ -162,8 +215,14 @@ export class PatientControllerBase {
     }
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id/appointments")
   @ApiNestedQuery(AppointmentFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Appointment",
+    action: "read",
+    possession: "any",
+  })
   async findAppointments(
     @common.Req() request: Request,
     @common.Param() params: PatientWhereUniqueInput
@@ -201,6 +260,11 @@ export class PatientControllerBase {
   }
 
   @common.Post("/:id/appointments")
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "update",
+    possession: "any",
+  })
   async connectAppointments(
     @common.Param() params: PatientWhereUniqueInput,
     @common.Body() body: AppointmentWhereUniqueInput[]
@@ -218,6 +282,11 @@ export class PatientControllerBase {
   }
 
   @common.Patch("/:id/appointments")
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "update",
+    possession: "any",
+  })
   async updateAppointments(
     @common.Param() params: PatientWhereUniqueInput,
     @common.Body() body: AppointmentWhereUniqueInput[]
@@ -235,6 +304,11 @@ export class PatientControllerBase {
   }
 
   @common.Delete("/:id/appointments")
+  @nestAccessControl.UseRoles({
+    resource: "Patient",
+    action: "update",
+    possession: "any",
+  })
   async disconnectAppointments(
     @common.Param() params: PatientWhereUniqueInput,
     @common.Body() body: AppointmentWhereUniqueInput[]
