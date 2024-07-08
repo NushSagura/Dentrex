@@ -3,6 +3,7 @@ import { AppointmentModule } from "./appointment/appointment.module";
 import { TreatmentModule } from "./treatment/treatment.module";
 import { PatientModule } from "./patient/patient.module";
 import { StaffModule } from "./staff/staff.module";
+import { UserModule } from "./user/user.module";
 import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { SecretsManagerModule } from "./providers/secrets/secretsManager.module";
@@ -12,13 +13,19 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { GraphQLModule } from "@nestjs/graphql";
 import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 
+import { ACLModule } from "./auth/acl.module";
+import { AuthModule } from "./auth/auth.module";
+
 @Module({
   controllers: [],
   imports: [
+    ACLModule,
+    AuthModule,
     AppointmentModule,
     TreatmentModule,
     PatientModule,
     StaffModule,
+    UserModule,
     HealthModule,
     PrismaModule,
     SecretsManagerModule,

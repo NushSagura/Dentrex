@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Treatment } from "./Treatment";
 import { TreatmentCountArgs } from "./TreatmentCountArgs";
 import { TreatmentFindManyArgs } from "./TreatmentFindManyArgs";
@@ -23,10 +29,20 @@ import { DeleteTreatmentArgs } from "./DeleteTreatmentArgs";
 import { AppointmentFindManyArgs } from "../../appointment/base/AppointmentFindManyArgs";
 import { Appointment } from "../../appointment/base/Appointment";
 import { TreatmentService } from "../treatment.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Treatment)
 export class TreatmentResolverBase {
-  constructor(protected readonly service: TreatmentService) {}
+  constructor(
+    protected readonly service: TreatmentService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Treatment",
+    action: "read",
+    possession: "any",
+  })
   async _treatmentsMeta(
     @graphql.Args() args: TreatmentCountArgs
   ): Promise<MetaQueryPayload> {
@@ -36,14 +52,26 @@ export class TreatmentResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Treatment])
+  @nestAccessControl.UseRoles({
+    resource: "Treatment",
+    action: "read",
+    possession: "any",
+  })
   async treatments(
     @graphql.Args() args: TreatmentFindManyArgs
   ): Promise<Treatment[]> {
     return this.service.treatments(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Treatment, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Treatment",
+    action: "read",
+    possession: "own",
+  })
   async treatment(
     @graphql.Args() args: TreatmentFindUniqueArgs
   ): Promise<Treatment | null> {
@@ -54,7 +82,13 @@ export class TreatmentResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Treatment)
+  @nestAccessControl.UseRoles({
+    resource: "Treatment",
+    action: "create",
+    possession: "any",
+  })
   async createTreatment(
     @graphql.Args() args: CreateTreatmentArgs
   ): Promise<Treatment> {
@@ -64,7 +98,13 @@ export class TreatmentResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Treatment)
+  @nestAccessControl.UseRoles({
+    resource: "Treatment",
+    action: "update",
+    possession: "any",
+  })
   async updateTreatment(
     @graphql.Args() args: UpdateTreatmentArgs
   ): Promise<Treatment | null> {
@@ -84,6 +124,11 @@ export class TreatmentResolverBase {
   }
 
   @graphql.Mutation(() => Treatment)
+  @nestAccessControl.UseRoles({
+    resource: "Treatment",
+    action: "delete",
+    possession: "any",
+  })
   async deleteTreatment(
     @graphql.Args() args: DeleteTreatmentArgs
   ): Promise<Treatment | null> {
@@ -99,7 +144,13 @@ export class TreatmentResolverBase {
     }
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.ResolveField(() => [Appointment], { name: "appointments" })
+  @nestAccessControl.UseRoles({
+    resource: "Appointment",
+    action: "read",
+    possession: "any",
+  })
   async findAppointments(
     @graphql.Parent() parent: Treatment,
     @graphql.Args() args: AppointmentFindManyArgs
